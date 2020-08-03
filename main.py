@@ -46,15 +46,15 @@ def hello():
 Api for request by country and by date.
 @params :
     country (str) : country wanted 
-    date (int) : date in the format m/d/y
+    date (str) : date in the format m/d/y
 @return :
     - Error 400 : Bad request  if parameter are not found in the data
     - JSON : {
-        "country" : country,
-        "date" : date,
-        "cases" : cases,
-        "deaths" : deaths,
-        "recoveries": recoveries
+        "country" : str,
+        "date" : str,
+        "cases" : int,
+        "deaths" : int,
+        "recoveries": int
         }
 """
 @app.route("/api/<country>/<path:date>")
@@ -71,15 +71,15 @@ def getStatsByCountryAndByDate(country, date):
     cases = CASES_DF.loc[CASES_DF["country"] == str(country)]
     cases = cases[str(date)]
     app.logger.debug("Cases : %s", cases)
-    cases = str(cases.iloc[0])
+    cases = int(cases.iloc[0])
     
     deaths = DEATHS_DF.loc[DEATHS_DF["country"] == str(country)]
     deaths = deaths[str(date)]
-    deaths = str(deaths.iloc[0])
+    deaths = int(deaths.iloc[0])
     
     recoveries = RECOVERIES_DF.loc[RECOVERIES_DF["country"] == str(country)]
     recoveries = recoveries[str(date)]
-    recoveries = str(recoveries.iloc[0])
+    recoveries = int(recoveries.iloc[0])
     
     ret = {
         "country" : country,
@@ -98,11 +98,11 @@ Api for request of latrest data by country
 @return :
     - Error 400 : Bad request  if parameter are not found in the data
     - JSON : {
-        "country" : country,
-        "date" : date,
-        "cases" : cases,
-        "deaths" : deaths,
-        "recoveries": recoveries
+        "country" : str,
+        "date" : str,
+        "cases" : int,
+        "deaths" : int,
+        "recoveries": int
         }
 """
 @app.route("/api/latest/<country>")
@@ -111,7 +111,22 @@ def getLatestByCountry(country):
     ret = getStatsByCountryAndByDate(country, latest_date)
     return ret
     
-
+"""
+Api for request of world summary data by date
+@params :
+    date (str) : date in the format m/d/y
+@return :
+    - Error 400 : Bad request  if parameter are not found in the data
+    - JSON :     ret = {
+        "date" : str,
+        "cases" : int,
+        "total_deaths" : int,
+        "total_recoveries": int,
+        "total_active": int,
+        "mortality_rate": float,
+        "recoveries_rate": float
+        }
+"""
 @app.route("/api/world_summary/<path:date>")
 def getWorlSummaryByDate(date):
     if not(date in SET_DATE):
@@ -122,12 +137,12 @@ def getWorlSummaryByDate(date):
       
     ret = {
         "date" : date,
-        "cases" : world_summary[0],
-        "total_deaths" : world_summary[1],
-        "total_recoveries": world_summary[2],
-        "total_active": world_summary[3],
-        "mortality_rate": world_summary[4],
-        "recoveries_rate": world_summary[5]
+        "cases" : int(world_summary[0]),
+        "total_deaths" : int(world_summary[1]),
+        "total_recoveries": int(world_summary[2]),
+        "total_active": int(world_summary[3]),
+        "mortality_rate": float(world_summary[4]),
+        "recoveries_rate": float(world_summary[5])
         }
     
     return jsonify(ret)
