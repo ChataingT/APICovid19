@@ -6,7 +6,7 @@ Created on Tue Jul 28 10:23:30 2020
 """
 
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, abort
 from logging.config import dictConfig
 
 import pandas as pd
@@ -30,34 +30,55 @@ app = Flask(__name__)
 
 def loadCsvData2DF(dir_path="data"):
     
-    cases_df = pd.read_csv(os.path.join(dir_path, "cases_data.csv"))
-    deaths_df = pd.read_csv(os.path.join(dir_path, "deaths_data.csv"))
-    recoveries_df = pd.read_csv(os.path.join(dir_path, "recoveries_data.csv"))
-    world_summary = pd.read_csv(os.path.join(dir_path, "world_data.csv"))
+    CASES_DF = pd.read_csv(os.path.join(dir_path, "cases_data.csv"))
+    DEATHS_DF = pd.read_csv(os.path.join(dir_path, "deaths_data.csv"))
+    RECOVERIES_DF = pd.read_csv(os.path.join(dir_path, "recoveries_data.csv"))
+    WORDL_SUMMAR_DF = pd.read_csv(os.path.join(dir_path, "world_data.csv"))
     app.logger.info("Loaded")
-    return (cases_df, deaths_df, recoveries_df, world_summary)
+    return (CASES_DF, DEATHS_DF, RECOVERIES_DF, WORDL_SUMMAR_DF)
 
 
 @app.route("/")
 def hello():
     return "Hello World!"
 
+"""
+Api for request by country and by date.
+@params :
+    country (str) : country wanted 
+    date (int) : date in the format m/d/y
+@return :
+    - Error 400 : Bad request  if parameter are not found in the data
+    - JSON : {
+        "country" : country,
+        "date" : date,
+        "cases" : cases,
+        "deaths" : deaths,
+        "recoveries": recoveries
+        }
+"""
 @app.route("/api/<country>/<path:date>")
-def getStatsByCountry(country, date):
-    app.logger.info("Country %s", country)
-    app.logger.info("Date %s", date)
-    # test date format m/j/yy
-    (cases_df, deaths_df, recoveries_df, world_summary) = loadCsvData2DF()
-    cases = cases_df.loc[cases_df["country"] == str(country)]
+def getStatsByCountryAndByDate(country, date):
+    
+    if not(country in LIST_COUNTRY):
+        app.logger.error("Wrong input country=%s", country)
+        abort(400)
+    if not(date in LIST_DATE):
+        app.logger.error("Wrong input date=%s", date)
+        abort(400)
+        
+    app.logger.info("Request by country and date [%s,%s]", country, date)
+
+    cases = CASES_DF.loc[CASES_DF["country"] == str(country)]
     cases = cases[str(date)]
     app.logger.debug("Cases : %s", cases)
     cases = str(cases.iloc[0])
     
-    deaths = deaths_df.loc[deaths_df["country"] == str(country)]
+    deaths = DEATHS_DF.loc[DEATHS_DF["country"] == str(country)]
     deaths = deaths[str(date)]
     deaths = str(deaths.iloc[0])
     
-    recoveries = recoveries_df.loc[recoveries_df["country"] == str(country)]
+    recoveries = RECOVERIES_DF.loc[RECOVERIES_DF["country"] == str(country)]
     recoveries = recoveries[str(date)]
     recoveries = str(recoveries.iloc[0])
     
@@ -75,5 +96,8 @@ def getStatsByCountry(country, date):
     
 
 if __name__ == "__main__":
-    (cases_df, deaths_df, recoveries_df, world_summary) = loadCsvData2DF()
+    (CASES_DF, DEATHS_DF, RECOVERIES_DF, WORDL_SUMMAR_DF) = loadCsvData2DF()
+    LIST_COUNTRY = set(CASES_DF["country"].to_list())
+    LIST_DATE = set(CASES_DF.columns.to_list()[1:]) # date format m/j/yy
+    
     app.run(debug=True)
