@@ -59,11 +59,10 @@ Api for request by country and by date.
 """
 @app.route("/api/<country>/<path:date>")
 def getStatsByCountryAndByDate(country, date):
-    
-    if not(country in LIST_COUNTRY):
+    if not(country in SET_COUNTRY):
         app.logger.error("Wrong input country=%s", country)
         abort(400)
-    if not(date in LIST_DATE):
+    if not(date in SET_DATE):
         app.logger.error("Wrong input date=%s", date)
         abort(400)
         
@@ -89,15 +88,55 @@ def getStatsByCountryAndByDate(country, date):
         "deaths" : deaths,
         "recoveries": recoveries
         }
-    app.logger.info("Return %s", ret)
     
     return jsonify(ret)
-    
+
+"""
+Api for request of latrest data by country
+@params :
+    country (str) : country wanted 
+@return :
+    - Error 400 : Bad request  if parameter are not found in the data
+    - JSON : {
+        "country" : country,
+        "date" : date,
+        "cases" : cases,
+        "deaths" : deaths,
+        "recoveries": recoveries
+        }
+"""
+@app.route("/api/latest/<country>")
+def getLatestByCountry(country):
+    latest_date = max(SET_DATE)
+    ret = getStatsByCountryAndByDate(country, latest_date)
+    return ret
     
 
-if __name__ == "__main__":
-    (CASES_DF, DEATHS_DF, RECOVERIES_DF, WORDL_SUMMAR_DF) = loadCsvData2DF()
-    LIST_COUNTRY = set(CASES_DF["country"].to_list())
-    LIST_DATE = set(CASES_DF.columns.to_list()[1:]) # date format m/j/yy
+@app.route("/api/world_summary/<path:date>")
+def getWorlSummaryByDate(date):
+    if not(date in SET_DATE):
+        app.logger.error("Wrong input date=%s", date)
+        abort(400)
+        
+    world_summary = WORLD_SUMMARY_DF[str(date)].to_list()
+      
+    ret = {
+        "date" : date,
+        "cases" : world_summary[0],
+        "total_deaths" : world_summary[1],
+        "total_recoveries": world_summary[2],
+        "total_active": world_summary[3],
+        "mortality_rate": world_summary[4],
+        "recoveries_rate": world_summary[5]
+        }
     
+    return jsonify(ret)
+        
+if __name__ == "__main__":
+    (CASES_DF, DEATHS_DF, RECOVERIES_DF, WORLD_SUMMARY_DF) = loadCsvData2DF()
+    SET_COUNTRY = set(CASES_DF["country"].to_list())
+    SET_DATE = CASES_DF.columns.to_list()[2:] # date format m/j/yy
+    SET_DATE.sort()
+    SET_DATE = set(SET_DATE)
+
     app.run(debug=True)
